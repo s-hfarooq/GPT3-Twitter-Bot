@@ -4,6 +4,7 @@ import tweepy
 import time
 import random
 from random_word import RandomWords
+from datetime import datetime, timedelta
 
 apiKeys = json.load(open("api_keys.json"))
 
@@ -24,14 +25,15 @@ r = RandomWords()
 while(True):
     # Get random tweet
     randWord = r.get_random_word()
+    startTime = datetime.today() - timedelta(days=1)
 
     while(randWord is None):
         randWord = r.get_random_word()
 
-    tweetData = client.search_recent_tweets(query=randWord, user_auth=True)
+    tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime)
 
     while(tweetData is None):
-        tweetData = client.search_recent_tweets(query=randWord, user_auth=True)
+        tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime)
     
     tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
 
@@ -64,6 +66,6 @@ while(True):
 
     print(f"gpt3 response: https://twitter.com/user/status/{response.data['id']}")
 
-    sleepTime = random.randint(60, 60 * 10)
+    sleepTime = random.randint(60 * 5, 60 * 25)
     print("Sleeping for", sleepTime, "seconds...")
     time.sleep(sleepTime)
