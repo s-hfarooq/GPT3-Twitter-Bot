@@ -32,11 +32,11 @@ while(True):
     while(tweetData is None):
         tweetData = client.search_recent_tweets(query=randWord, user_auth=True)
     
-    tweetText = tweetData.data[0].text
+    tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\" Produce a response:"
 
     print("Search term:", randWord)
     print("Tweet responding to:", tweetText)
-    print("Link: https://twitter.com/RasmusBoysen92/status", tweetData.data[0].id)
+    print(f"Link: https://twitter.com/user/status/{tweetData.data[0].id}")
 
     # Run openai completion on tweet
     out = openai.Completion.create(
