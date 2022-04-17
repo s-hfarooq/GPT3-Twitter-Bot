@@ -6,6 +6,8 @@ from random_word import RandomWords
 
 apiKeys = json.load(open("api_keys.json"))
 
+openai.api_key = apiKeys["openai"]
+
 client = tweepy.Client(
     consumer_key=apiKeys["consumer_key"], consumer_secret=apiKeys["consumer_secret"],
     access_token=apiKeys["access_token"], access_token_secret=apiKeys["access_token_secret"]
@@ -32,20 +34,20 @@ while(True):
     
     tweetText = tweetData.data[0].text
 
-    print(tweetText)
+    print("Search term:", randWord)
+    print("Tweet responding to:", tweetText)
+    print("Link: https://twitter.com/RasmusBoysen92/status", tweetData.data[0].id)
 
     # Run openai completion on tweet
-    openai.api_key = apiKeys["openai"]
     out = openai.Completion.create(
         engine="text-davinci-002",
         prompt=tweetText,
-        max_tokens=64,
-        frequency_penalty=0.5
+        max_tokens=60,
+        frequency_penalty=0.4
     )
 
     # Ensure tweet isn't over max len (start thread instead of regen?)
     while(len(out.choices[0].text) > 280 or len(out.choices[0].text) < 1):
-        print("another")
         out = openai.Completion.create(
             engine="text-davinci-002",
             prompt=tweetText,
@@ -58,6 +60,5 @@ while(True):
         text=out.choices[0].text
     )
 
-    print(f"https://twitter.com/user/status/{response.data['id']}")
+    print(f"gpt3 response: https://twitter.com/user/status/{response.data['id']}")
     time.sleep(60)
-
