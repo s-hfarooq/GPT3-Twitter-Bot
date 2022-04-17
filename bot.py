@@ -2,6 +2,7 @@ import json
 import openai
 import tweepy
 import time
+import random
 from random_word import RandomWords
 
 apiKeys = json.load(open("api_keys.json"))
@@ -32,7 +33,7 @@ while(True):
     while(tweetData is None):
         tweetData = client.search_recent_tweets(query=randWord, user_auth=True)
     
-    tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\" Produce a response:"
+    tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
 
     print("Search term:", randWord)
     print("Tweet responding to:", tweetText)
@@ -57,8 +58,12 @@ while(True):
 
     # Send tweet
     response = client.create_tweet(
-        text=out.choices[0].text
+        text=out.choices[0].text,
+        in_reply_to_tweet_id=tweetData.data[0].id
     )
 
     print(f"gpt3 response: https://twitter.com/user/status/{response.data['id']}")
-    time.sleep(60)
+
+    sleepTime = random.randint(60, 60 * 10)
+    print("Sleeping for", sleepTime, "seconds...")
+    time.sleep(sleepTime)
