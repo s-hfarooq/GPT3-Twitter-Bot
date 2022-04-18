@@ -26,23 +26,24 @@ while(True):
     # Get random tweet
     randWord = r.get_random_word()
     startTime = datetime.today() - timedelta(days=1)
+    endTime = datetime.today() - timedelta(seconds=90)
 
     try:
         while(randWord is None):
             randWord = r.get_random_word()
 
-        tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime)
+        tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime, end_time=endTime)
     except:
-        print("Error on fetching tweets... retrying")
+        print("Error on fetching tweets... restarting")
         continue
 
     try:
         while(tweetData is None):
-            tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime)
+            tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime, end_time=endTime)
         
         tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
     except TypeError:
-        print("Type error on tweetdata... retrying")
+        print("Type error on tweetdata... restarting")
         continue
 
     print("Search term:", randWord)
@@ -62,15 +63,20 @@ while(True):
         out = openai.Completion.create(
             engine="text-davinci-002",
             prompt=tweetText,
-            max_tokens=64,
-            frequency_penalty=0.5
+            max_tokens=60,
+            frequency_penalty=0.4
         )
 
     # Send tweet
-    response = client.create_tweet(
-        text=out.choices[0].text,
-        in_reply_to_tweet_id=tweetData.data[0].id
-    )
+    try:
+        response = client.create_tweet(
+            text=out.choices[0].text,
+            in_reply_to_tweet_id=tweetData.data[0].id
+        )
+    except:
+        print("error on sending tweet... restarting")
+        continue
+
 
     print(f"gpt3 response: https://twitter.com/user/status/{response.data['id']}")
 
