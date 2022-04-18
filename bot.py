@@ -27,15 +27,23 @@ while(True):
     randWord = r.get_random_word()
     startTime = datetime.today() - timedelta(days=1)
 
-    while(randWord is None):
-        randWord = r.get_random_word()
+    try:
+        while(randWord is None):
+            randWord = r.get_random_word()
 
-    tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime)
-
-    while(tweetData is None):
         tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime)
-    
-    tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
+    except:
+        print("Error on fetching tweets... retrying")
+        continue
+
+    try:
+        while(tweetData is None):
+            tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime)
+        
+        tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
+    except TypeError:
+        print("Type error on tweetdata... retrying")
+        continue
 
     print("Search term:", randWord)
     print("Tweet responding to:", tweetText)
