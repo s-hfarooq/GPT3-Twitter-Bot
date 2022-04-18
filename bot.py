@@ -75,5 +75,8 @@ while(True):
     print(f"gpt3 response: https://twitter.com/user/status/{response.data['id']}")
 
     sleepTime = random.randint(60 * 5, 60 * 25)
-    print("Sleeping for", sleepTime, "seconds...")
+    nextTime = datetime.today() + timedelta(seconds=sleepTime)
+    nextTime = nextTime.strftime("%Y-%m-%d %H:%M:%S")
+    nextTime = datetime.strptime(nextTime, "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %I:%M:%S %p")
+    print(f"Sleeping for {sleepTime} seconds (Next tweet at {nextTime})...\n\n\n")
     time.sleep(sleepTime)
