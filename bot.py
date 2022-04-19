@@ -15,10 +15,10 @@ client = tweepy.Client(
     access_token=apiKeys["access_token"], access_token_secret=apiKeys["access_token_secret"]
 )
 
-# auth = tweepy.OAuthHandler(apiKeys["consumer_key"], apiKeys["consumer_secret"])
-# auth.set_access_token(apiKeys["access_token"], apiKeys["access_token_secret"])
-# auth.secure = True
-# api = tweepy.API(auth)
+auth = tweepy.OAuthHandler(apiKeys["consumer_key"], apiKeys["consumer_secret"])
+auth.set_access_token(apiKeys["access_token"], apiKeys["access_token_secret"])
+auth.secure = True
+api = tweepy.API(auth)
 
 r = RandomWords()
 
@@ -28,6 +28,10 @@ while(True):
     startTime = datetime.today() - timedelta(days=1)
     endTime = datetime.today() - timedelta(seconds=90)
 
+    isQuoteTweet = True
+    if random.uniform(0, 1) < 0.2:
+        isQuoteTweet = False
+    
     try:
         while(randWord is None):
             randWord = r.get_random_word()
@@ -41,14 +45,18 @@ while(True):
         while(tweetData is None):
             tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime, end_time=endTime)
         
-        tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
+        if isQuoteTweet:
+            tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
+        else:
+            tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Comment a response:"
     except TypeError:
         print("Type error on tweetdata... restarting")
         continue
 
+    origTweetUrl = f"https://twitter.com/user/status/{tweetData.data[0].id}"
     print("Search term:", randWord)
     print("Tweet responding to:", tweetText)
-    print(f"Link: https://twitter.com/user/status/{tweetData.data[0].id}")
+    print("Link:", origTweetUrl)
 
     # Run openai completion on tweet
     out = openai.Completion.create(
@@ -69,16 +77,21 @@ while(True):
 
     # Send tweet
     try:
-        response = client.create_tweet(
-            text=out.choices[0].text,
-            in_reply_to_tweet_id=tweetData.data[0].id
-        )
+        if isQuoteTweet:
+            api.update_status(
+                status=out.choices[0].text,
+                attachment_url=origTweetUrl
+            )
+        else:
+            response = client.create_tweet(
+                text=out.choices[0].text,
+                in_reply_to_tweet_id=tweetData.data[0].id
+            )
+        
+            print(f"gpt3 response: https://twitter.com/user/status/{response.data['id']}")
     except:
         print("error on sending tweet... restarting")
         continue
-
-
-    print(f"gpt3 response: https://twitter.com/user/status/{response.data['id']}")
 
     sleepTime = random.randint(60 * 5, 60 * 25)
     nextTime = datetime.today() + timedelta(seconds=sleepTime)
