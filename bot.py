@@ -3,8 +3,10 @@ import openai
 import tweepy
 import time
 import random
-from random_word import RandomWords
 from datetime import datetime, timedelta
+
+woeid = 2490383 # 2490383 = Seattle
+quoteTweetPercent = 0.2
 
 apiKeys = json.load(open("api_keys.json"))
 
@@ -20,30 +22,35 @@ auth.set_access_token(apiKeys["access_token"], apiKeys["access_token_secret"])
 auth.secure = True
 api = tweepy.API(auth)
 
-r = RandomWords()
-
 while(True):
-    # Get random tweet
-    randWord = r.get_random_word()
+    # Get tweet based on most popular trend in specific location
+    rj_trends = api.get_place_trends(id=woeid)
+    trends = []
+    for trend in rj_trends[0]['trends']: 
+        if trend['tweet_volume'] is not None and trend['tweet_volume'] > 10000: 
+            trends.append((trend['name'], trend['tweet_volume']))
+    trends.sort(key=lambda x:-x[1])
+    searchWord = trends[0][0]
+
     startTime = datetime.today() - timedelta(days=1)
     endTime = datetime.today() - timedelta(seconds=90)
 
+    # Determine if we should quote tweet or reply
     isQuoteTweet = True
-    if random.uniform(0, 1) < 0.2:
+    if random.uniform(0, 1) < quoteTweetPercent:
         isQuoteTweet = False
     
+    # Sometimes search doesn't always work properly so needs to be in a try/except
     try:
-        while(randWord is None):
-            randWord = r.get_random_word()
-
-        tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime, end_time=endTime)
+        tweetData = client.search_recent_tweets(query=searchWord, user_auth=True, start_time=startTime, end_time=endTime)
     except:
         print("Error on fetching tweets... restarting")
         continue
 
+    # Sometimes tweetData is empty so need to search again
     try:
         while(tweetData is None):
-            tweetData = client.search_recent_tweets(query=randWord, user_auth=True, start_time=startTime, end_time=endTime)
+            tweetData = client.search_recent_tweets(query=searchWord, user_auth=True, start_time=startTime, end_time=endTime)
         
         if isQuoteTweet:
             tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
@@ -54,7 +61,7 @@ while(True):
         continue
 
     origTweetUrl = f"https://twitter.com/user/status/{tweetData.data[0].id}"
-    print("Search term:", randWord)
+    print("Search term:", searchWord)
     print("Tweet responding to:", tweetText)
     print("Link:", origTweetUrl)
 
@@ -77,6 +84,7 @@ while(True):
 
     # Send tweet
     try:
+        client.like(tweetData.data[0].id)
         if isQuoteTweet:
             api.update_status(
                 status=out.choices[0].text,
@@ -93,6 +101,7 @@ while(True):
         print("error on sending tweet... restarting")
         continue
 
+    # Sleep for random amount of time (5-25 minutes)
     sleepTime = random.randint(60 * 5, 60 * 25)
     nextTime = datetime.today() + timedelta(seconds=sleepTime)
     nextTime = nextTime.strftime("%Y-%m-%d %H:%M:%S")
