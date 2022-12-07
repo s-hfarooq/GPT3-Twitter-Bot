@@ -1,22 +1,27 @@
 import json
-import openai
 import tweepy
 import time
 import random
 from datetime import datetime, timedelta
 import langid
+from revChatGPT.revChatGPT import Chatbot
 
 woeid = 2490383 # 2490383 = Seattle
 quoteTweetPercent = 0.2
 
 apiKeys = json.load(open("api_keys.json"))
 
-openai.api_key = apiKeys["openai"]
-
 client = tweepy.Client(
     consumer_key=apiKeys["consumer_key"], consumer_secret=apiKeys["consumer_secret"],
     access_token=apiKeys["access_token"], access_token_secret=apiKeys["access_token_secret"]
 )
+
+chatbotConfig = {
+    "email": apiKeys["email"],
+    "password": apiKeys["password"]
+}
+
+chatbot = Chatbot(chatbotConfig, conversation_id=None)
 
 auth = tweepy.OAuthHandler(apiKeys["consumer_key"], apiKeys["consumer_secret"])
 auth.set_access_token(apiKeys["access_token"], apiKeys["access_token_secret"])
@@ -53,10 +58,7 @@ while(True):
         while(tweetData is None):
             tweetData = client.search_recent_tweets(query=searchWord, user_auth=True, start_time=startTime, end_time=endTime)
         
-        if isQuoteTweet:
-            tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Produce a response:"
-        else:
-            tweetText = "This was posted on Twitter: \"" + tweetData.data[0].text + "\". Comment a response:"
+        tweetText = "Someone sent me this message: \"" + tweetData.data[0].text + "\". What should I respond? Only respond with the response message text and ensure it is under 280 characters."
     except TypeError:
         print("Type error on tweetdata... restarting")
         continue
@@ -71,33 +73,27 @@ while(True):
     print("Link:", origTweetUrl)
 
     # Run openai completion on tweet
-    out = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=tweetText,
-        max_tokens=60,
-        frequency_penalty=0.4
-    )
+    print("starting")
+    print(tweetData.data[0].text)
+    out = chatbot.get_chat_response(tweetText)['message']
+    print("done")
+    print("out:", out)
 
     # Ensure tweet isn't over max len (start thread instead of regen?)
-    while(len(out.choices[0].text) > 280 or len(out.choices[0].text) < 1):
-        out = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=tweetText,
-            max_tokens=60,
-            frequency_penalty=0.4
-        )
+    while(len(out) > 280 or len(out) < 1):
+        out = chatbot.get_chat_response(tweetData.data[0].text)['message']
 
     # Send tweet
     try:
         client.like(tweetData.data[0].id)
         if isQuoteTweet:
             api.update_status(
-                status=out.choices[0].text,
+                status=out,
                 attachment_url=origTweetUrl
             )
         else:
             response = client.create_tweet(
-                text=out.choices[0].text,
+                text=out,
                 in_reply_to_tweet_id=tweetData.data[0].id
             )
         
