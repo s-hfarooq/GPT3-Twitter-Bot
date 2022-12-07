@@ -58,7 +58,7 @@ while(True):
         while(tweetData is None):
             tweetData = client.search_recent_tweets(query=searchWord, user_auth=True, start_time=startTime, end_time=endTime)
         
-        tweetText = "Someone sent me this message: \"" + tweetData.data[0].text + "\". What should I respond? Only respond with the response message text and ensure it is under 280 characters."
+        tweetText = "The following Tweet was posted today: \"" + tweetData.data[0].text + "\". Write a response to the Tweet. Do not give any other information. Ensure the response is under 280 characters."
     except TypeError:
         print("Type error on tweetdata... restarting")
         continue
